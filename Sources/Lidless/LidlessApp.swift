@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let state = ClamshellState()
     private var statusItem: NSStatusItem!
+    private var updateCheckInFlight = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -78,6 +79,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(toggleItem)
 
         menu.addItem(.separator())
+
+        let updateItem = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(checkForUpdates),
+            keyEquivalent: ""
+        )
+        updateItem.target = self
+        updateItem.isEnabled = !updateCheckInFlight
+        menu.addItem(updateItem)
+
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(
             title: "Quit",
             action: #selector(NSApplication.terminate(_:)),
@@ -93,5 +105,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleClicked() {
         state.toggle()
+    }
+
+    // MARK: - Updates
+
+    @objc private func checkForUpdates() {
+        guard !updateCheckInFlight else { return }
+        updateCheckInFlight = true
+        Task { @MainActor in
+            defer { updateCheckInFlight = false }
+            do {
+                let latest = try await UpdateChecker.fetchLatestVersion()
+                if UpdateChecker.isNewer(latest, than: AppVersion.current) {
+                    promptToUpdate(to: latest)
+                } else {
+                    showAlert(
+                        title: "You’re up to date",
+                        text: "Lidless \(AppVersion.current) is the latest version.")
+                }
+            } catch {
+                showAlert(title: "Update check failed", text: error.localizedDescription)
+            }
+        }
+    }
+
+    private func promptToUpdate(to version: String) {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Lidless \(version) is available"
+        alert.informativeText = """
+            You have \(AppVersion.current). Updating opens Terminal, which stops \
+            Lidless, reinstalls it, and relaunches it.
+            """
+        alert.addButton(withTitle: "Update")
+        alert.addButton(withTitle: "Later")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        do {
+            try UpdateChecker.launchUpdater()
+        } catch {
+            // Couldn't hand off to Terminal — tell the user how to do it by hand.
+            let fallback = NSAlert()
+            fallback.messageText = "Couldn’t start the updater"
+            fallback.informativeText = """
+                Update manually by running this in Terminal:
+
+                \(UpdateChecker.installCommand)
+                """
+            fallback.addButton(withTitle: "Copy Command")
+            fallback.addButton(withTitle: "OK")
+            if fallback.runModal() == .alertFirstButtonReturn {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(UpdateChecker.installCommand, forType: .string)
+            }
+        }
+    }
+
+    private func showAlert(title: String, text: String) {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = text
+        alert.runModal()
     }
 }

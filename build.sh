@@ -7,6 +7,12 @@ CONFIG="release"
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
+# VERSION is the single source of truth; fail fast if the compiled-in constant
+# (what the update checker compares against GitHub) has drifted from it.
+VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+grep -q "current = \"$VERSION\"" "$ROOT/Sources/Lidless/Version.swift" \
+  || { echo "error: VERSION ($VERSION) != AppVersion.current in Sources/Lidless/Version.swift" >&2; exit 1; }
+
 echo "==> swift build -c $CONFIG"
 swift build -c "$CONFIG"
 BIN_PATH="$(swift build -c "$CONFIG" --show-bin-path)"
@@ -18,6 +24,7 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
 cp "$BIN_PATH/$APP_NAME" "$APP_DIR/Contents/MacOS/$APP_NAME"
 cp "$ROOT/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP_DIR/Contents/Info.plist"
 
 echo "==> ad-hoc codesign"
 # Apple Silicon requires at least an ad-hoc signature to execute; signing the whole
