@@ -26,7 +26,7 @@ and start at login. Needs **macOS 14+** and the Xcode Command Line Tools
 
 ## Usage
 
-Click the menu-bar laptop icon and toggle **“Stay awake on lid close.”**
+**Left-click** the menu-bar laptop icon to toggle stay-awake. **Right-click** (or ctrl-click) for the menu.
 
 |           Icon           | State                            |
 | :----------------------: | -------------------------------- |
