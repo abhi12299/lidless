@@ -3,17 +3,23 @@ name: Version check
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 jobs:
   version:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the bump baseline (PR base branch or the pre-push
+          # main tip) is always available to `git show`.
+          fetch-depth: 0
 
       - name: VERSION is valid semver and matches Version.swift
         run: |
           version="$(tr -d '[:space:]' < VERSION)"
-          echo "PR version: $version"
+          echo "Version: $version"
 
           if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "::error file=VERSION::VERSION must be X.Y.Z, got: $version"
@@ -27,24 +33,35 @@ jobs:
             exit 1
           fi
 
-      - name: Version is bumped relative to main
+      - name: Version is bumped
         run: |
           version="$(tr -d '[:space:]' < VERSION)"
-          git fetch --depth 1 origin "${{ github.base_ref }}"
 
-          # First PR that introduces VERSION has no baseline — anything passes.
-          if ! base="$(git show "origin/${{ github.base_ref }}:VERSION" 2>/dev/null)"; then
-            echo "No VERSION on ${{ github.base_ref }} yet; skipping bump check."
+          # Baseline: PR base branch, or for direct pushes to main the tip
+          # main was at before the push.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            base_ref="${{ github.event.before }}"
+            if ! git cat-file -e "$base_ref" 2>/dev/null; then
+              echo "No baseline commit (new branch or force push); skipping bump check."
+              exit 0
+            fi
+          else
+            base_ref="origin/${{ github.base_ref }}"
+          fi
+
+          # No VERSION at the baseline (pre-1.0 history) — anything passes.
+          if ! base="$(git show "$base_ref:VERSION" 2>/dev/null)"; then
+            echo "No VERSION at baseline $base_ref; skipping bump check."
             exit 0
           fi
           base="$(echo "$base" | tr -d '[:space:]')"
-          echo "main: $base, PR: $version"
+          echo "baseline: $base, new: $version"
 
           if [ "$version" = "$base" ]; then
-            echo "::error file=VERSION::Version not bumped — main is already $base. Bump VERSION and AppVersion.current."
+            echo "::error file=VERSION::Version not bumped — baseline is already $base. Bump VERSION and AppVersion.current."
             exit 1
           fi
-          # sort -V puts the higher version last; the PR version must win.
+          # sort -V puts the higher version last; the new version must win.
           if [ "$(printf '%s\n%s\n' "$base" "$version" | sort -V | tail -1)" != "$version" ]; then
             echo "::error file=VERSION::Version went backwards: $version < $base"
             exit 1
