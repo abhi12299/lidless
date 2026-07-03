@@ -57,8 +57,8 @@ silently. Read it: [`PmsetService.swift`](Sources/Lidless/PmsetService.swift).
 
 ```bash
 rm -rf /Applications/Lidless.app
-launchctl unload ~/Library/LaunchAgents/com.saxecap.Lidless.plist 2>/dev/null
-rm -f ~/Library/LaunchAgents/com.saxecap.Lidless.plist
+launchctl unload ~/Library/LaunchAgents/com.lidless.plist 2>/dev/null
+rm -f ~/Library/LaunchAgents/com.lidless.plist
 sudo rm -f /etc/sudoers.d/lidless
 ```
 
