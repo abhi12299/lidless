@@ -80,6 +80,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
+        // Dimmed label pairing the installed version with the update action.
+        let versionItem = NSMenuItem(
+            title: "Lidless v\(AppVersion.current)",
+            action: nil,
+            keyEquivalent: ""
+        )
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
+
         let updateItem = NSMenuItem(
             title: "Check for Updates…",
             action: #selector(checkForUpdates),
