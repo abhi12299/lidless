@@ -28,6 +28,8 @@ and start at login. Needs **macOS 14+** and the Xcode Command Line Tools
 
 **Left-click** the menu-bar laptop icon to toggle stay-awake. **Right-click** (or ctrl-click) for the menu.
 
+**Check for Updates…** (in the right-click menu) compares your version against the repo's `VERSION` file and, if a newer one exists, opens Terminal to reinstall via the install script.
+
 |           Icon           | State                            |
 | :----------------------: | -------------------------------- |
 |     `laptopcomputer`     | Normal — sleeps on lid close     |

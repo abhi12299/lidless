@@ -1,0 +1,52 @@
+name: Version check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: VERSION is valid semver and matches Version.swift
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          echo "PR version: $version"
+
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error file=VERSION::VERSION must be X.Y.Z, got: $version"
+            exit 1
+          fi
+
+          # Same check build.sh enforces locally: the compiled-in constant the
+          # update checker compares against GitHub must match VERSION.
+          if ! grep -q "current = \"$version\"" Sources/Lidless/Version.swift; then
+            echo "::error file=Sources/Lidless/Version.swift::AppVersion.current does not match VERSION ($version)"
+            exit 1
+          fi
+
+      - name: Version is bumped relative to main
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          git fetch --depth 1 origin "${{ github.base_ref }}"
+
+          # First PR that introduces VERSION has no baseline — anything passes.
+          if ! base="$(git show "origin/${{ github.base_ref }}:VERSION" 2>/dev/null)"; then
+            echo "No VERSION on ${{ github.base_ref }} yet; skipping bump check."
+            exit 0
+          fi
+          base="$(echo "$base" | tr -d '[:space:]')"
+          echo "main: $base, PR: $version"
+
+          if [ "$version" = "$base" ]; then
+            echo "::error file=VERSION::Version not bumped — main is already $base. Bump VERSION and AppVersion.current."
+            exit 1
+          fi
+          # sort -V puts the higher version last; the PR version must win.
+          if [ "$(printf '%s\n%s\n' "$base" "$version" | sort -V | tail -1)" != "$version" ]; then
+            echo "::error file=VERSION::Version went backwards: $version < $base"
+            exit 1
+          fi
+          echo "OK: $base -> $version"
