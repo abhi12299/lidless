@@ -12,9 +12,7 @@ Built for **long-running AI agents**. Kick off an overnight coding agent, a batc
 LLM jobs, or a multi-hour eval, close the lid, and walk away — no external display,
 no charger, no Mac dropping to sleep mid-run.
 
-macOS normally sleeps the instant you close the lid unless it's plugged in *and*
-driving an external monitor. Lidless flips macOS's built-in `pmset -a disablesleep`
-flag from the menu bar. No kernel extension, no daemon, ~200 lines of SwiftUI.
+Lidless flips macOS's built-in `pmset -a disablesleep` flag from the menu bar. No kernel extension, no daemon, ~200 lines of SwiftUI.
 
 ## Install
 
@@ -30,15 +28,13 @@ and start at login. Needs **macOS 14+** and the Xcode Command Line Tools
 
 Click the menu-bar laptop icon and toggle **“Stay awake on lid close.”**
 
-| Icon | State |
-| :--: | ----- |
-| `laptopcomputer` | Normal — sleeps on lid close |
+|           Icon           | State                            |
+| :----------------------: | -------------------------------- |
+|     `laptopcomputer`     | Normal — sleeps on lid close     |
 | `lock.laptopcomputer` 🔒 | Awake — stays running lid-closed |
 
 The first toggle shows one admin prompt to install a passwordless helper; every
 toggle after is silent. **⌘Q** quits without changing the current setting.
-
-> ⚠️ A closed lid means less airflow. Keep the Mac ventilated for long, heavy runs.
 
 ## How it works
 
