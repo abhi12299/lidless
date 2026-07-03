@@ -58,8 +58,17 @@ jobs:
           echo "baseline: $base, new: $version"
 
           if [ "$version" = "$base" ]; then
-            echo "::error file=VERSION::Version not bumped — baseline is already $base. Bump VERSION and AppVersion.current."
-            exit 1
+            # No bump. Fine unless the change touches what ships in the built
+            # app — then installed copies would differ from "latest" invisibly.
+            app_changes="$(git diff --name-only "$base_ref" HEAD -- Sources Resources Package.swift build.sh)"
+            if [ -n "$app_changes" ]; then
+              echo "App files changed without a version bump:"
+              echo "$app_changes"
+              echo "::error file=VERSION::App files changed but version is still $base. Bump VERSION and AppVersion.current."
+              exit 1
+            fi
+            echo "OK: no app changes; version bump not required."
+            exit 0
           fi
           # sort -V puts the higher version last; the new version must win.
           if [ "$(printf '%s\n%s\n' "$base" "$version" | sort -V | tail -1)" != "$version" ]; then

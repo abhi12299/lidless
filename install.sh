@@ -84,7 +84,8 @@ WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/lidless.XXXXXX")"
 info "Cloning ${REPO_SLUG}…"
 git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$WORKDIR/src" >/dev/null 2>&1 \
   || die "Clone failed. Is ${REPO_URL} reachable?"
-ok "Cloned"
+APP_VERSION="$(tr -d '[:space:]' < "$WORKDIR/src/VERSION" 2>/dev/null || echo unknown)"
+ok "Cloned (Lidless v${APP_VERSION})"
 
 info "Building ${APP_NAME}.app (release)…"
 ( cd "$WORKDIR/src" && ./build.sh ) >/dev/null 2>&1 \
@@ -105,7 +106,7 @@ if ! cp -R "$BUILT_APP" "$APP_PATH" 2>/dev/null; then
   warn "Couldn't write to ${INSTALL_DIR} directly — retrying with sudo."
   sudo cp -R "$BUILT_APP" "$APP_PATH" || die "Install failed."
 fi
-ok "Installed ${APP_NAME}.app"
+ok "Installed ${APP_NAME}.app (v${APP_VERSION})"
 
 # --- Launch at login --------------------------------------------------------
 install_launch_agent() {
@@ -146,7 +147,7 @@ if [ -z "${STARTED:-}" ]; then
 fi
 
 # --- Done -------------------------------------------------------------------
-printf '\n%s%s Done!%s Lidless lives in your menu bar — look for the %slaptop icon%s.\n' \
-  "${GREEN}${BOLD}" "🎉" "${RESET}" "${BOLD}" "${RESET}"
+printf '\n%s%s Done!%s Lidless v%s lives in your menu bar — look for the %slaptop icon%s.\n' \
+  "${GREEN}${BOLD}" "🎉" "${RESET}" "${APP_VERSION}" "${BOLD}" "${RESET}"
 printf '   Click it and toggle %s“Stay awake on lid close.”%s\n' "${DIM}" "${RESET}"
 printf '   The first toggle asks for your password once, to install a passwordless helper.\n\n'
